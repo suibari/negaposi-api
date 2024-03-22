@@ -1,27 +1,45 @@
 from flask import Flask, request, jsonify
-import oseti
+from janome.tokenizer import Tokenizer
+import pandas as pd
 
 app = Flask(__name__)
 
-# OSETIの初期化
-analyzer = oseti.Analyzer()
+# 評価極性辞書を読み込む
+df = pd.read_csv('./dict/pn.csv.m3.120408.trim', header=None, delimiter='\t')
+word_dict = dict(zip(df[0], df[1]))
 
-@app.route('/analyze_sentiment', methods=['POST'])
-def analyze_sentiment():
-    # POSTリクエストからJSONデータを取得
-    data = request.json
+# 形態素解析器の初期化
+tokenizer = Tokenizer()
+
+def analyze_sentiment(text):
+    tokens = tokenizer.tokenize(text)
+    total_score = 0
+    token_count = 0
+    for token in tokens:
+        surface = token.surface
+        print(surface)
+        if surface in word_dict:
+            score = word_dict[surface]
+            if score == 'p':
+                total_score += 1
+            elif score == 'n':
+                total_score -= 1
+            # 'e' の場合は何もしない
+            token_count += 1
+    if token_count == 0:
+        return 0  # トークンがない場合は0を返す
+    return total_score / token_count
+
+@app.route('/analyze', methods=['POST'])
+def analyze_text():
+    data = request.get_json()
     if data is None or 'text' not in data:
-        return jsonify({'error': 'No text provided'}), 400
+        return jsonify({'error': 'Invalid input. Please provide a JSON object with "text" field.'}), 400
     
-    # 感情分析
-    scores = analyzer.analyze(data['text'])
-
-    # 結果を整形
-    response = {
-        'sentiment_scores': scores
-    }
-    
-    return jsonify(response)
+    text = data['text']
+    sentiment = analyze_sentiment(text)
+    result = {'text': text, 'sentiment': sentiment}
+    return jsonify(result)
 
 if __name__ == '__main__':
     app.run(debug=True)
