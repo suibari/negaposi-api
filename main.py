@@ -14,22 +14,24 @@ tokenizer = Tokenizer()
 
 def analyze_sentiment(text):
     tokens = tokenizer.tokenize(text)
+    wakati = []
     total_score = 0
     token_count = 0
     for token in tokens:
-        surface = token.surface
-        print(surface)
-        if surface in word_dict:
-            score = word_dict[surface]
-            if score == 'p':
-                total_score += 1
-            elif score == 'n':
-                total_score -= 1
-            # 'e' の場合は何もしない
-            token_count += 1
+        wakati.append(token.surface)
+        if '名詞' in token.part_of_speech:
+            surface = token.surface
+            if surface in word_dict:
+                score = word_dict[surface]
+                if score == 'p':
+                    total_score += 1
+                elif score == 'n':
+                    total_score -= 1
+                # 'e' の場合は何もしない
+                token_count += 1
     if token_count == 0:
-        return 0  # トークンがない場合は0を返す
-    return total_score / token_count
+        return {'sentiment': 0, 'tokens': wakati}
+    return {'sentiment': total_score / token_count, 'tokens': wakati}
 
 @app.route('/analyze', methods=['POST'])
 def analyze_text():
@@ -38,8 +40,7 @@ def analyze_text():
         return jsonify({'error': 'Invalid input. Please provide a JSON object with "text" field.'}), 400
     
     text = data['text']
-    sentiment = analyze_sentiment(text)
-    result = {'text': text, 'sentiment': sentiment}
+    result = analyze_sentiment(text)
     return jsonify(result)
 
 if __name__ == '__main__':
