@@ -43,6 +43,10 @@ def analyze_text():
     result = analyze_sentiment(text)
     return jsonify(result)
 
+@app.route('/ping', methods=['GET'])
+def ping():
+    return jsonify({'message': 'pong'}), 200
+
 if __name__ == '__main__':
     host = '0.0.0.0'
     port = int(os.environ.get('PORT', 5000))
