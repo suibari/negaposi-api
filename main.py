@@ -112,16 +112,38 @@ def analyze_sentiment(text):
         "nouns_count": noun_stats  # 名詞の集計結果
     }
 
-def sanitize_text(text):
+import re
+
+def sanitize_text(text, max_length=10000):
+    """
+    入力文字列をクリーンアップする関数。
+    制御文字・非ASCII文字を除去し、日本語、アルファベット、数字のみを許可。
+
+    Args:
+        text (str): 入力テキスト。
+        max_length (int): 許容する最大文字列長。
+
+    Returns:
+        str: クリーンアップされた文字列。
+    """
     # 空文字チェック
     if not isinstance(text, str) or not text.strip():
         return ""
 
-    # 制御文字を除去
-    text = re.sub(r"[\x00-\x1F\x7F]", "", text)
+    try:
+        # 制御文字を除去
+        text = re.sub(r"[\x00-\x1F\x7F]", "", text)
 
-    # 非ASCII文字や適切でないUnicode文字のフィルタ
-    text = re.sub(r"[^\w\sぁ-んァ-ヶ一-龠々ー]", "", text)
+        # 日本語、アルファベット、数字以外の文字を削除
+        text = re.sub(r"[^\wぁ-んァ-ヶ一-龠々ー。、・]+", "", text)
+
+        # テキストの長さを制限
+        if len(text) > max_length:
+            text = text[:max_length]
+    except Exception as e:
+        # エラーが発生した場合は空文字を返す
+        print(f"Error sanitizing text: {e}")
+        return ""
 
     return text
 
