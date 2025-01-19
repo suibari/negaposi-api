@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from janome.tokenizer import Tokenizer
 import pandas as pd
 import os
+import re
 
 app = Flask(__name__)
 
@@ -13,7 +14,7 @@ word_dict = dict(zip(df[0], df[1]))
 tokenizer = Tokenizer()
 
 def analyze_sentiment(text):
-    tokens = tokenizer.tokenize(text)  # トークンをジェネレーターで取得
+    tokens = tokenizer.tokenize(sanitize_text(text))  # トークンをジェネレーターで取得
     detailed_tokens = []
     total_score = 0
     token_count = 0
@@ -48,6 +49,19 @@ def analyze_sentiment(text):
         "sentiment": average_sentiment,
         "tokens": detailed_tokens
     }
+
+def sanitize_text(text):
+    # 空文字チェック
+    if not isinstance(text, str) or not text.strip():
+        return ""
+
+    # 制御文字を除去
+    text = re.sub(r"[\x00-\x1F\x7F]", "", text)
+
+    # 非ASCII文字や適切でないUnicode文字のフィルタ
+    text = re.sub(r"[^\w\sぁ-んァ-ヶ一-龠々ー]", "", text)
+
+    return text
 
 @app.route('/analyze', methods=['POST'])
 def analyze_text():
