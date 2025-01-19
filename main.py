@@ -13,11 +13,42 @@ word_dict = dict(zip(df[0], df[1]))
 # 形態素解析器の初期化
 tokenizer = Tokenizer()
 
+def analyze_texts(texts):
+    # 全体の結果を格納するリスト
+    wakati_results = []
+    average_sentiments = []
+    nouns_counts_results = []
+
+    # 各テキストのリストに対して処理
+    for text_group in texts:
+        wakati_group = []  # 現在のグループの分かち書き結果
+        sentiment_group = []  # 現在のグループの感情スコア
+        nouns_count_group = []  # 現在のグループの名詞集計
+
+        for text in text_group:
+            # 個々のテキストを analyze_sentiment に渡す
+            result = analyze_sentiment(text)
+
+            # 結果を各リストに追加
+            wakati_group.append(result["wakati"])
+            sentiment_group.append(result["sentiment"])
+            nouns_count_group.append(result["nouns_count"])
+
+        # グループごとの結果を全体リストに追加
+        wakati_results.append(wakati_group)
+        average_sentiments.append(sentiment_group)
+        nouns_counts_results.append(nouns_count_group)
+
+    return {
+        "wakati": wakati_results,
+        "average_sentiments": average_sentiments,
+        "nouns_counts": nouns_counts_results
+    }
+
 def analyze_sentiment(text):
     tokens = tokenizer.tokenize(sanitize_text(text))  # トークンをジェネレーターで取得
     detailed_tokens = []
-    noun_stats_map = {}
-    noun_stats = {}  # 名詞の集計
+    noun_stats_map = {}  # 名詞の集計を保持する辞書
     wakati = []  # 分かち書き結果
     total_score = 0
     token_count = 0
@@ -67,7 +98,7 @@ def analyze_sentiment(text):
 
     return {
         "sentiment": average_sentiment,  # テキスト全体の感情値
-        "wakati": wakati,  # 分かち書き結果（スペース区切り）
+        "wakati": wakati,  # 分かち書き結果
         "nouns_count": noun_stats  # 名詞の集計結果
     }
 
@@ -87,11 +118,11 @@ def sanitize_text(text):
 @app.route('/analyze', methods=['POST'])
 def analyze_text():
     data = request.get_json()
-    if data is None or 'text' not in data:
-        return jsonify({'error': 'Invalid input. Please provide a JSON object with "text" field.'}), 400
+    if data is None or 'texts' not in data:
+        return jsonify({'error': 'Invalid input. Please provide a JSON object with "texts" field.'}), 400
     
-    text = data['text']
-    result = analyze_sentiment(text)
+    texts = data['texts']
+    result = analyze_texts(texts)
     return jsonify(result)
 
 @app.route('/ping', methods=['GET'])
