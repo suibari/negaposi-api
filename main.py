@@ -14,35 +14,45 @@ word_dict = dict(zip(df[0], df[1]))
 tokenizer = Tokenizer()
 
 def analyze_texts(texts):
-    # 全体の結果を格納するリスト
-    wakati_results = []
-    average_sentiments = []
-    nouns_counts_results = []
+    # 全体の結果を格納する変数
+    wakati_results = []  # 2次元配列
+    average_sentiments = []  # 1次元配列
+    noun_stats_map = {}  # 名詞の集計を保持する辞書（再集計用）
 
     # 各テキストのリストに対して処理
     for text_group in texts:
-        wakati_group = []  # 現在のグループの分かち書き結果
-        sentiment_group = []  # 現在のグループの感情スコア
-        nouns_count_group = []  # 現在のグループの名詞集計
-
         for text in text_group:
             # 個々のテキストを analyze_sentiment に渡す
             result = analyze_sentiment(text)
 
-            # 結果を各リストに追加
-            wakati_group.append(result["wakati"])
-            sentiment_group.append(result["sentiment"])
-            nouns_count_group.append(result["nouns_count"])
+            # 分かち書き結果を保存
+            wakati_results.append(result["wakati"])
 
-        # グループごとの結果を全体リストに追加
-        wakati_results.append(wakati_group)
-        average_sentiments.append(sentiment_group)
-        nouns_counts_results.append(nouns_count_group)
+            # 感情スコアを保存
+            average_sentiments.append(result["sentiment"])
+
+            # 名詞集計を再集計
+            for noun_data in result["nouns_count"]:
+                noun = noun_data["noun"]
+                count = noun_data["count"]
+                sentiment_sum = noun_data["sentiment_sum"]
+
+                if noun not in noun_stats_map:
+                    noun_stats_map[noun] = {"count": 0, "sentiment_sum": 0}
+
+                noun_stats_map[noun]["count"] += count
+                noun_stats_map[noun]["sentiment_sum"] += sentiment_sum
+
+    # 名詞集計結果をリスト形式に変換
+    nouns_counts = [
+        {"noun": noun, "count": stats["count"], "sentiment_sum": stats["sentiment_sum"]}
+        for noun, stats in noun_stats_map.items()
+    ]
 
     return {
-        "wakati": wakati_results,
-        "average_sentiments": average_sentiments,
-        "nouns_counts": nouns_counts_results
+        "wakati": wakati_results,  # 2次元配列
+        "average_sentiments": average_sentiments,  # 1次元配列
+        "nouns_counts": nouns_counts  # 1次元配列
     }
 
 def analyze_sentiment(text):
