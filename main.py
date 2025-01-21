@@ -20,28 +20,27 @@ def analyze_texts(texts):
     noun_stats_map = {}  # 名詞の集計を保持する辞書（再集計用）
 
     # 各テキストのリストに対して処理
-    for text_group in texts:
-        for text in text_group:
-            # 個々のテキストを analyze_sentiment に渡す
-            result = analyze_sentiment(text)
+    for text in texts:
+        # 個々のテキストを analyze_sentiment に渡す
+        result = analyze_sentiment(text)
 
-            # 分かち書き結果を保存
-            wakati_results.append(result["wakati"])
+        # 分かち書き結果を保存
+        wakati_results.append(result["wakati"])
 
-            # 感情スコアを保存
-            average_sentiments.append(result["sentiment"])
+        # 感情スコアを保存
+        average_sentiments.append(result["sentiment"])
 
-            # 名詞集計を再集計
-            for noun_data in result["nouns_count"]:
-                noun = noun_data["noun"]
-                count = noun_data["count"]
-                sentiment_sum = noun_data["sentiment_sum"]
+        # 名詞集計を再集計
+        for noun_data in result["nouns_count"]:
+            noun = noun_data["noun"]
+            count = noun_data["count"]
+            sentiment_sum = noun_data["sentiment_sum"]
 
-                if noun not in noun_stats_map:
-                    noun_stats_map[noun] = {"count": 0, "sentiment_sum": 0}
+            if noun not in noun_stats_map:
+                noun_stats_map[noun] = {"count": 0, "sentiment_sum": 0}
 
-                noun_stats_map[noun]["count"] += count
-                noun_stats_map[noun]["sentiment_sum"] += sentiment_sum
+            noun_stats_map[noun]["count"] += count
+            noun_stats_map[noun]["sentiment_sum"] += sentiment_sum
 
     # 名詞集計結果をリスト形式に変換
     nouns_counts = [
