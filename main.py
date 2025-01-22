@@ -23,7 +23,7 @@ def analyze_texts(texts):
     # 各テキストのリストに対して処理
     for text in texts:
         # 個々のテキストを analyze_sentiment に渡す
-        result = analyze_sentiment(text)
+        result = analyze_sentiment(sanitize_text(text))
 
         # 分かち書き結果を保存
         wakati_results.append(result["wakati"])
@@ -56,7 +56,16 @@ def analyze_texts(texts):
     }
 
 def analyze_sentiment(text):
-    tokens = tokenizer.tokenize(sanitize_text(text))  # トークンをジェネレーターで取得
+    tokens = tokenizer.tokenize(text)  # トークンをジェネレーターで取得
+    
+    # tokens が None または 空リストの場合に早期リターン
+    if not tokens:
+        return {
+            "sentiment": 0,  # 感情値を 0 に設定
+            "wakati": [],  # 分かち書き結果なし
+            "nouns_count": []  # 名詞集計なし
+        }
+
     detailed_tokens = []
     noun_stats_map = {}  # 名詞の集計を保持する辞書
     wakati = []  # 分かち書き結果
