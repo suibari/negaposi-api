@@ -133,8 +133,10 @@ def sanitize_text(text, max_length=10000):
         # 制御文字を除去
         text = re.sub(r"[\x00-\x1F\x7F]", "", text)
 
-        # 日本語、アルファベット、数字以外の文字を削除
-        text = re.sub(r"[^\wぁ-んァ-ヶ一-龠々ー。、・]+", "", text)
+        # アルファベットと半角英数と記号と改行とタブを排除
+        text = re.sub(r'[a-zA-Z0-9¥"¥.¥,¥@]+', '', text)
+        text = re.sub(r'[!"“#$%&()\*\+\-\.,\/:;<=>?@\[\\\]^_`{|}~]', '', text)
+        text = re.sub(r'[\n|\r|\t]', '', text)
 
         # テキストの長さを制限
         if len(text) > max_length:
