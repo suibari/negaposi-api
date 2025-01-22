@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 from janome.tokenizer import Tokenizer
+import nltk
 import pandas as pd
 import os
 import re
@@ -111,8 +112,6 @@ def analyze_sentiment(text):
         "nouns_count": noun_stats  # 名詞の集計結果
     }
 
-import re
-
 def sanitize_text(text, max_length=10000):
     """
     入力文字列をクリーンアップする関数。
@@ -137,6 +136,10 @@ def sanitize_text(text, max_length=10000):
         text = re.sub(r'[a-zA-Z0-9¥"¥.¥,¥@]+', '', text)
         text = re.sub(r'[!"“#$%&()\*\+\-\.,\/:;<=>?@\[\\\]^_`{|}~]', '', text)
         text = re.sub(r'[\n|\r|\t]', '', text)
+
+        # 日本語以外の文字を排除(韓国語とか中国語とかヘブライ語とか)
+        jp_chartype_tokenizer = nltk.RegexpTokenizer(u'([ぁ-んー]+|[ァ-ンー]+|[\u4e00-\u9FFF]+|[ぁ-んァ-ンー\u4e00-\u9FFF]+)')
+        text = "".join(jp_chartype_tokenizer.tokenize(text))
 
         # テキストの長さを制限
         if len(text) > max_length:
