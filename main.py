@@ -9,9 +9,22 @@ from typing import List
 
 app = FastAPI()
 
-# 評価極性辞書を読み込む
+# 日本語辞書の読み込み
 df = pd.read_csv('./dict/pn.csv.m3.120408.trim', header=None, delimiter='\t')
 word_dict = dict(zip(df[0], df[1]))
+
+# 英語辞書の読み込み（pn_en.dic形式: word:POS:score）
+en_dict_path = './dict/pn_en.dic'
+en_word_dict = {}
+with open(en_dict_path, encoding='utf-8') as f:
+    for line in f:
+        parts = line.strip().split(':')
+        if len(parts) == 3:
+            word, _, score = parts
+            try:
+                en_word_dict[word.lower()] = float(score)
+            except ValueError:
+                continue
 
 # 形態素解析器の初期化
 tokenizer = Tokenizer()
@@ -20,36 +33,31 @@ tokenizer = Tokenizer()
 class TextsRequest(BaseModel):
     texts: List[str]
 
-# テキスト解析メイン処理
+# メイン処理
 def analyze_texts(texts: List[str]):
-    # 全体の結果を格納する変数
-    wakati_results = []  # 2次元配列
-    average_sentiments = []  # 1次元配列
-    noun_stats_map = {}  # 名詞の集計を保持する辞書（再集計用）
+    wakati_results = []
+    average_sentiments = []
+    noun_stats_map = {}
 
-    # 各テキストのリストに対して処理
     for text in texts:
-        result = analyze_sentiment(sanitize_text(text))
+        if contains_japanese(text):
+            sanitized = sanitize_text(text)
+            result = analyze_sentiment(sanitized)
+        else:
+            result = analyze_sentiment_en(text)
 
-        # 分かち書き結果を保存
         wakati_results.append(result["wakati"])
-
-        # 感情スコアを保存
         average_sentiments.append(result["sentiment"])
 
-        # 名詞集計を再集計
         for noun_data in result["nouns_count"]:
             noun = noun_data["noun"]
             count = noun_data["count"]
             sentiment_sum = noun_data["sentiment_sum"]
-
             if noun not in noun_stats_map:
                 noun_stats_map[noun] = {"count": 0, "sentiment_sum": 0}
-
             noun_stats_map[noun]["count"] += count
             noun_stats_map[noun]["sentiment_sum"] += sentiment_sum
 
-    # 名詞集計結果をリスト形式に変換
     nouns_counts = [
         {"noun": noun, "count": stats["count"], "sentiment_sum": stats["sentiment_sum"]}
         for noun, stats in noun_stats_map.items()
@@ -61,7 +69,11 @@ def analyze_texts(texts: List[str]):
         "nouns_counts": nouns_counts
     }
 
-# テキスト感情解析
+# 日本語を含むか判定
+def contains_japanese(text: str) -> bool:
+    return bool(re.search(r'[\u3040-\u30FF\u4E00-\u9FFF]', text))
+
+# テキスト感情解析(日本語)
 def analyze_sentiment(text: str):
     tokens = tokenizer.tokenize(text)  # トークンをジェネレーターで取得
 
@@ -108,6 +120,41 @@ def analyze_sentiment(text: str):
             token_count += 1
 
         detailed_tokens.append(token_info)
+
+    average_sentiment = total_score / token_count if token_count > 0 else 0
+
+    noun_stats = [
+        {"noun": noun, "count": stats["count"], "sentiment_sum": stats["sentiment_sum"]}
+        for noun, stats in noun_stats_map.items()
+    ]
+
+    return {
+        "sentiment": average_sentiment,
+        "wakati": wakati,
+        "nouns_count": noun_stats
+    }
+
+# テキスト感情解析(英語)
+def analyze_sentiment_en(text: str):
+    print(text)
+    words = re.findall(r'\b\w+\b', text.lower())  # 英単語のみ抽出
+    wakati = []
+    total_score = 0
+    token_count = 0
+    noun_stats_map = {}
+
+    for word in words:
+        if len(word) < 2:
+            continue
+        sentiment = en_word_dict.get(word, 0.0)
+        if word not in noun_stats_map:
+            noun_stats_map[word] = {"count": 0, "sentiment_sum": 0}
+        noun_stats_map[word]["count"] += 1
+        noun_stats_map[word]["sentiment_sum"] += sentiment
+        if sentiment != 0.0:
+            total_score += sentiment
+            token_count += 1
+        wakati.append(word)
 
     average_sentiment = total_score / token_count if token_count > 0 else 0
 
