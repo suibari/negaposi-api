@@ -38,6 +38,7 @@ def analyze_texts(texts: List[str]):
     wakati_results = []
     average_sentiments = []
     noun_stats_map = {}
+    nouns_results = []
 
     for text in texts:
         if contains_japanese(text):
@@ -48,6 +49,7 @@ def analyze_texts(texts: List[str]):
 
         wakati_results.append(result["wakati"])
         average_sentiments.append(result["sentiment"])
+        nouns_results.append(result["nouns"])
 
         for noun_data in result["nouns_count"]:
             noun = noun_data["noun"]
@@ -57,7 +59,7 @@ def analyze_texts(texts: List[str]):
                 noun_stats_map[noun] = {"count": 0, "sentiment_sum": 0}
             noun_stats_map[noun]["count"] += count
             noun_stats_map[noun]["sentiment_sum"] += sentiment_sum
-
+    
     nouns_counts = [
         {"noun": noun, "count": stats["count"], "sentiment_sum": stats["sentiment_sum"]}
         for noun, stats in noun_stats_map.items()
@@ -66,6 +68,7 @@ def analyze_texts(texts: List[str]):
     return {
         "wakati": wakati_results,
         "average_sentiments": average_sentiments,
+        "nouns": nouns_results,
         "nouns_counts": nouns_counts
     }
 
@@ -81,7 +84,8 @@ def analyze_sentiment(text: str):
         return {
             "sentiment": 0,  
             "wakati": [],  
-            "nouns_count": []  
+            "nouns_count": [],
+            "nouns": [],
         }
 
     detailed_tokens = []
@@ -127,10 +131,12 @@ def analyze_sentiment(text: str):
         {"noun": noun, "count": stats["count"], "sentiment_sum": stats["sentiment_sum"]}
         for noun, stats in noun_stats_map.items()
     ]
+    nouns = list(noun_stats_map.keys())
 
     return {
         "sentiment": average_sentiment,
         "wakati": wakati,
+        "nouns": nouns,
         "nouns_count": noun_stats
     }
 
@@ -162,10 +168,12 @@ def analyze_sentiment_en(text: str):
         {"noun": noun, "count": stats["count"], "sentiment_sum": stats["sentiment_sum"]}
         for noun, stats in noun_stats_map.items()
     ]
+    nouns = list(noun_stats_map.keys())
 
     return {
         "sentiment": average_sentiment,
         "wakati": wakati,
+        "nouns": nouns,
         "nouns_count": noun_stats
     }
 
